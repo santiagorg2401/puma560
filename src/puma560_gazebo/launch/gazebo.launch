@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Arguments. -->
+    <arg name="model" value="$(find puma560_description)/urdf/puma560_description.xacro"/>
+    <arg name="paused" default="false"/>
+    <arg name="use_sim_time" default="true"/>
+    <arg name="gui" default="true"/>
+    <arg name="headless" default="false"/>
+    <arg name="debug" default="true"/>
+
+    <!-- Launch empty_world. -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch"> 
+      <arg name="world_name" value="$(find gazebo_ros)/launch/empty_world.launch"/>
+      <arg name="debug" value="$(arg debug)" />
+      <arg name="gui" value="$(arg gui)" />
+      <arg name="paused" value="$(arg paused)"/>
+      <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+      <arg name="headless" value="$(arg headless)"/>
+    </include>
+    <param name="use_gui" value="$(arg gui)"/>
+
+  <group ns="/puma560_description">
+    <!-- Load the URDF into the ROS Parameter Server -->
+    <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" ></node>
+    <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+    args="-urdf -model robot1 -param robot_description -z 0.00"/> 
+
+    <!-- Load joint controller configurations from YAML file to parameter server -->
+    <rosparam file="$(find puma560_description)/config/joint_names_puma560_description.yaml" command="load"/>
+
+    <!-- load the controllers -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+      output="screen" ns="/puma560_description" args="--namespace=/puma560_description
+      joint_state_controller
+      j1_pc
+      j2_pc
+      j3_pc
+      j4_pc
+      j5_pc
+      --timeout 0"/>
+  </group>
+</launch>
